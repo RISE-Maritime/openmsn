@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+
+"""
+Command line utility tool for listening to udp traffic and
+outputting to stdout.
+"""
+
+import sys
+import logging
+import socket
+import argparse
+from base64 import b64encode, b64decode
+
+logger = logging.getLogger("udp-multicast")
+
+
+def listen(args: argparse.Namespace):
+    """Listen in on multicast traffic and output to stdout
+
+    Args:
+        args (argparse.Namespace): Command-line arguments
+    """
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, args.TTL)
+    sock.setsockopt(
+        socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(
+            args.interface)
+    )
+    sock.setsockopt(
+        socket.IPPROTO_IP,
+        socket.IP_ADD_MEMBERSHIP,
+        socket.inet_aton(args.group) + socket.inet_aton(args.interface),
+    )
+
+    sock.bind((args.group, args.port))
+    sock.setblocking(True)
+
+    try:
+        while True:
+            data, *_, sender = sock.recvmsg(65535)
+            logging.debug("Got new packet from %s : %s", sender[0], data)
+            sys.stdout.write(
+                (b64encode(data).decode() + "\n") if args.encode else data.decode()
+            )
+            sys.stdout.flush()
+    finally:
+        sock.setsockopt(
+            socket.IPPROTO_IP,
+            socket.IP_DROP_MEMBERSHIP,
+            socket.inet_aton(args.group) + socket.inet_aton(args.interface),
+        )
+        sock.close()
+
+
+def send(args: argparse.Namespace):
+    """Listen to stdin and push to multicast
+
+    Args:
+        args (argparse.Namespace): Command-line arguments
+    """
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, args.TTL)
+    sock.setsockopt(socket.IPPROTO_IP,
+                    socket.IP_MULTICAST_LOOP, int(args.loopback))
+    sock.setsockopt(
+        socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(
+            args.interface)
+    )
+
+    try:
+        for line in sys.stdin:
+            payload = b64decode(
+                line.encode()) if args.decode else line.encode()
+            logger.debug("Sending new packet to %s : %s",
+                         (args.group, args.port), payload)
+            sock.sendto(payload, (args.group, args.port))
+    finally:
+        sock.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Command-line tool for UDP MULTICAST")
+
+    parser.add_argument("--log-level", type=int, default=logging.INFO)
+
+    sub_commands = parser.add_subparsers()
+
+    listen_parser = sub_commands.add_parser("listen")
+    listen_parser.add_argument("group", type=str)
+    listen_parser.add_argument("port", type=int)
+    listen_parser.add_argument("--interface", type=str, default="0.0.0.0")
+    listen_parser.add_argument(
+        "--TTL",
+        type=int,
+        default=1,
+    )
+    listen_parser.add_argument(
+        "--encode",
+        action="store_true",
+        default=False,
+        help="base64 encode each packet content",
+    )
+    listen_parser.set_defaults(func=listen)
+
+    send_parser = sub_commands.add_parser("send")
+    send_parser.add_argument("group", type=str)
+    send_parser.add_argument("port", type=int)
+    send_parser.add_argument("--interface", type=str, default="0.0.0.0")
+    send_parser.add_argument(
+        "--TTL",
+        type=int,
+        default=1,
+    )
+    send_parser.add_argument("--loopback", default=False, action="store_true")
+    send_parser.add_argument(
+        "--decode",
+        action="store_true",
+        default=False,
+        help="base64 decode each line before pushing",
+    )
+    send_parser.set_defaults(func=send)
+
+    # Parse
+    args = parser.parse_args()
+
+    # Setup logger
+    logging.basicConfig(
+        format="%(asctime)s %(levelname)s %(name)s %(message)s", level=args.log_level
+    )
+    logging.captureWarnings(True)
+
+    # Dispatch to correct handler
+    args.func(args)

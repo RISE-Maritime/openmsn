@@ -1,0 +1,12 @@
+services:
+  emsn-to-zenoh:
+    build: "."
+    network_mode: host
+    restart: always
+    command: [ "udp-multicast --log-level 0 listen ${MCAST_ADDR} ${MCAST_GROUP} --encode | zenoh put --key '@omsn/poc/${SITE_ID}/${APPLICATION_ID}' --line '{value}'" ]
+
+  zenoh-to-emsn:
+    build: "."
+    network_mode: host
+    restart: always
+    command: [ "zenoh subscribe --key '@omsn/poc/**' --line '{key} {value}' | grep --line-buffered --invert-match -e '@omsn/poc/${SITE_ID}/${APPLICATION_ID}' | shuffle '{key} {value}' '{value}' | udp-multicast --log-level 0 send ${MCAST_ADDR} ${MCAST_GROUP} --decode" ]
