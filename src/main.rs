@@ -1,4 +1,5 @@
 use clap::Parser;
+use socket2::{Domain, Protocol, Socket, Type};
 use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddrV4, UdpSocket};
 use std::path::PathBuf;
@@ -83,18 +84,57 @@ async fn main() {
     };
     let z_session = open(z_config).await.expect("Failed to open Zenoh session");
 
-    // UDP socket setup for receiving
-    let mcast_socket = UdpSocket::bind(SocketAddrV4::new(args.interface, args.port))
-        .expect("Failed to bind UDP socket (recv)");
-    mcast_socket
-        .set_nonblocking(true)
-        .expect("Failed to set non-blocking");
-    mcast_socket
-        .set_multicast_loop_v4(false)
-        .expect("Failed to disable loopback");
-    mcast_socket
+    // UDP socket setup for receiving using socket2
+
+    let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
+        .expect("Failed to create socket");
+    socket
+        .set_reuse_address(true)
+        .expect("Failed to set SO_REUSEADDR");
+    // TTL
+    socket
+        .set_multicast_ttl_v4(1)
+        .expect("Failed to set IP_MULTICAST_TTL");
+    // Interface
+    socket
+        .set_multicast_if_v4(&args.interface)
+        .expect("Failed to set IP_MULTICAST_IF");
+    // Bind
+    socket
+        .bind(&SocketAddrV4::new(args.group, args.port).into())
+        .expect("Failed to bind socket");
+    // Join group
+    socket
         .join_multicast_v4(&args.group, &args.interface)
         .expect("Failed to join multicast group");
+    socket
+        .set_nonblocking(true)
+        .expect("Failed to set non-blocking");
+    let recv_socket: UdpSocket = socket.into();
+
+    // UDP socket setup for sending using socket2
+    let socket = Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
+        .expect("Failed to create socket");
+    socket
+        .set_reuse_address(true)
+        .expect("Failed to set SO_REUSEADDR");
+    // TTL
+    socket
+        .set_multicast_ttl_v4(1)
+        .expect("Failed to set IP_MULTICAST_TTL");
+    // Loopback
+    socket
+        .set_multicast_loop_v4(false)
+        .expect("Failed to set IP_MULTICAST_LOOP");
+    // Interface
+    socket
+        .set_multicast_if_v4(&args.interface)
+        .expect("Failed to set IP_MULTICAST_IF");
+
+    socket
+        .set_nonblocking(true)
+        .expect("Failed to set non-blocking");
+    let send_socket: UdpSocket = socket.into();
 
     // UDP -> Zenoh task
     let publisher = z_session
@@ -102,14 +142,12 @@ async fn main() {
         .allowed_destination(zenoh::sample::Locality::Remote)
         .await
         .expect("Failed to create Zenoh publisher");
-    let mcast = mcast_socket
-        .try_clone()
-        .expect("Failed to clone UDP socket");
+    let receiver = recv_socket.try_clone().expect("Failed to clone UDP socket");
     let counter = udp_to_zenoh_counter.clone();
     tokio::spawn(async move {
         let mut buf = [0u8; 65535];
         loop {
-            match mcast.recv_from(&mut buf) {
+            match receiver.recv_from(&mut buf) {
                 Ok((size, src)) => {
                     counter.fetch_add(1, Ordering::Relaxed);
                     if args.verbose {
@@ -142,9 +180,7 @@ async fn main() {
         .allowed_origin(zenoh::sample::Locality::Remote)
         .await
         .expect("Failed to subscribe to Zenoh");
-    let mcast = mcast_socket
-        .try_clone()
-        .expect("Failed to clone UDP socket");
+    let sender = send_socket.try_clone().expect("Failed to clone UDP socket");
     let counter = zenoh_to_udp_counter.clone();
     let per_sender_stats_task = per_sender_stats.clone();
     tokio::spawn(async move {
@@ -166,7 +202,9 @@ async fn main() {
             if args.verbose {
                 println!("Zenoh -> UDP [{} bytes]: {:?}", payload.len(), payload);
             }
-            let _ = mcast.send_to(&payload, SocketAddrV4::new(args.group, args.port));
+            sender
+                .send_to(&payload, SocketAddrV4::new(args.group, args.port))
+                .expect("Failed to send UDP packet");
         }
     });
 

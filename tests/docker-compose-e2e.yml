@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  omsn1:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: [ "--simulation-id", "simtest", "--site-id", "siteA", "--application-id", "appA", "--group", "239.0.0.1", "--port", "50000", "--verbose" ]
+    networks:
+      - mcastnet
+
+  omsn2:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: [ "--simulation-id", "simtest", "--site-id", "siteB", "--application-id", "appB", "--group", "239.0.0.2", "--port", "50000", "--verbose" ]
+    networks:
+      - mcastnet
+
+networks:
+  mcastnet:
+    driver: bridge
