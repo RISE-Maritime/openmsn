@@ -6,9 +6,23 @@
 
 openMSN (`omsn`) is a high-performance proxy that bridges UDP multicast and [Zenoh](https://zenoh.io), enabling geo-distributed maritime simulators to communicate across different sites. It solves the problem of extending local multicast networks (commonly used in maritime simulation environments) across wide-area networks by leveraging Zenoh's pub/sub infrastructure.
 
-### What is (E)MSN?
+### What is EMSN?
 
-Maritime Simulation Network (MSN) and Extended Maritime Simulation Network (EMSN) are protocols used in maritime simulation environments where multiple simulators need to exchange data in real-time. These typically use UDP multicast for local communication. openMSN extends this capability to geo-distributed deployments.
+The **European Maritime Simulator Network (EMSN)** is a large-scale geo-distributed simulator network that connects maritime simulation centers across Europe. Inaugurated in November 2014 and developed through the EU-funded [Sea Traffic Management (STM) Validation project](https://www.seatrafficmanagement.info/), EMSN represents the world's largest commercial ship bridge simulator network.
+
+**Key EMSN Characteristics:**
+- Connects up to 29 manned ship bridges across 10 simulation centers
+- Enables realistic multi-ship scenarios for testing maritime safety and Sea Traffic Management services
+- Uses UDP multicast for local communication between simulators at each site
+- Allows testing complex scenarios (port approaches, confined waters, search and rescue) in a controlled environment
+
+**openMSN's Role:**
+Maritime simulator networks like EMSN traditionally rely on local UDP multicast communication, which doesn't work across wide-area networks. openMSN solves this by bridging local multicast traffic with Zenoh's pub/sub infrastructure, enabling true geo-distributed simulator deployments using open-source technology.
+
+**Learn More:**
+- [EMSN Simulations - STM](https://www.seatrafficmanagement.info/emsn-simulations/)
+- [Fraunhofer CML - EMSN/APMSN](https://www.cml.fraunhofer.de/en/research-projects/EMSN-APMSN.html)
+- [EMSN Technical Description (PDF)](https://stm-stmvalidation.s3.eu-west-1.amazonaws.com/uploads/20190403113947/STM_ID3.2.1-EMSN-Technical-Description.pdf)
 
 ## Key Features
 
