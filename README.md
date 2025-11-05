@@ -17,7 +17,7 @@ The **European Maritime Simulator Network (EMSN)** is a large-scale geo-distribu
 - Allows testing complex scenarios (port approaches, confined waters, search and rescue) in a controlled environment
 
 **openMSN's Role:**
-Maritime simulator networks like EMSN traditionally rely on local UDP multicast communication, which doesn't work across wide-area networks. openMSN solves this by bridging local multicast traffic with Zenoh's pub/sub infrastructure, enabling true geo-distributed simulator deployments using open-source technology.
+Locally, EMSN rely on local UDP multicast communication, which doesn't work across wide-area networks. Traditionally, the connection of multiple geo-distributed sites involves the use of VPN connections that are centrally administered using closed-source, commercial software and hardware. openMSN provides geo-distributed simulator deployments using open-source technology.
 
 **Learn More:**
 - [EMSN Simulations - STM](https://www.seatrafficmanagement.info/emsn-simulations/)
