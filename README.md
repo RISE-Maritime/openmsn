@@ -10,11 +10,6 @@ openMSN (`omsn`) is a high-performance proxy that bridges UDP multicast and [Zen
 
 The **European Maritime Simulator Network (EMSN)** is a large-scale geo-distributed simulator network that connects maritime simulation centers across Europe. Inaugurated in November 2014 and developed through the EU-funded [Sea Traffic Management (STM) Validation project](https://www.seatrafficmanagement.info/), EMSN represents the world's largest commercial ship bridge simulator network.
 
-**Key EMSN Characteristics:**
-- Connects up to 29 manned ship bridges across 10 simulation centers
-- Enables realistic multi-ship scenarios for testing maritime safety and Sea Traffic Management services
-- Uses UDP multicast for local communication between simulators at each site
-- Allows testing complex scenarios (port approaches, confined waters, search and rescue) in a controlled environment
 
 **openMSN's Role:**
 Locally, EMSN rely on local UDP multicast communication, which doesn't work across wide-area networks. Traditionally, the connection of multiple geo-distributed sites involves the use of VPN connections that are centrally administered using closed-source, commercial software and hardware. openMSN provides geo-distributed simulator deployments using open-source technology.
