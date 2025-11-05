@@ -21,7 +21,6 @@ Locally, EMSN rely on local UDP multicast communication, which doesn't work acro
 
 **Learn More:**
 - [EMSN Simulations - STM](https://www.seatrafficmanagement.info/emsn-simulations/)
-- [Fraunhofer CML - EMSN/APMSN](https://www.cml.fraunhofer.de/en/research-projects/EMSN-APMSN.html)
 - [EMSN Technical Description (PDF)](https://stm-stmvalidation.s3.eu-west-1.amazonaws.com/uploads/20190403113947/STM_ID3.2.1-EMSN-Technical-Description.pdf)
 
 ## Key Features
